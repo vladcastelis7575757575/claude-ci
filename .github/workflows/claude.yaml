@@ -56,3 +56,8 @@ jobs:
           #       "NODE_ENV": "test"
           #     }
           #   }
+
+name: Dump Claude result
+  if: always()
+  run: |
+    jq -r 'select(.type=="result")' /home/runner/work/_temp/claude-execution-output.json
