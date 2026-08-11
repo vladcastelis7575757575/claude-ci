@@ -44,7 +44,7 @@ jobs:
 
           # Optional: Configure Claude's behavior with CLI arguments
           claude_args: |
-            --model claude-sonnet-5
+            --model claude-haiku-4-5-20251001
             --max-turns 5
             --allowedTools "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
             --system-prompt "Follow our coding standards. Ensure all new code has tests. Use TypeScript for new files."
@@ -56,8 +56,3 @@ jobs:
           #       "NODE_ENV": "test"
           #     }
           #   }
-
-name: Dump Claude result
-  if: always()
-  run: |
-    jq -r 'select(.type=="result")' /home/runner/work/_temp/claude-execution-output.json
