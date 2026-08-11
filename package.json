@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/vladcastelis7575757575/claude-ci/issues"
   },
-  "homepage": "https://github.com/vladcastelis7575757575/claude-ci#readme"
+  "homepage": "https://github.com/vladcastelis7575757575/claude-ci#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
 }
