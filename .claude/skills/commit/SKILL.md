@@ -91,6 +91,22 @@ Never add AI attribution, `Co-Authored-By`, or a generated-with footer unless th
 
 A normal push is `git push`, or `git push -u origin <branch>` the first time a branch goes up. Always push the current branch only — never `--all`, never an explicit refspec the user didn't ask for.
 
+**Never push to `main` or `master`.** Those branches only ever move through a reviewed pull request, so no push may land on them — not a normal push, not a force push, not `origin main`, not `HEAD:main`, not a `--all` / `--mirror` that sweeps them up along the way, and not a deletion. This holds even when the user asks for it directly, and regardless of how small or urgent the change is.
+
+Two cases in practice:
+
+- **The work is already on a feature branch.** Push it and open a PR. `main` moves when the PR merges.
+- **The commits landed on `main` locally.** Move them onto a branch before pushing anything:
+
+  ```bash
+  git switch -c fix/<short-name>   # takes the commits along
+  git push -u origin fix/<short-name>
+  ```
+
+  Then reset the local `main` back onto its remote (`git switch main && git reset --hard origin/main`) only if the user asks — never on your own initiative.
+
+If the user insists on writing to `main` directly, say once that the push is out of scope here and let them run it themselves. Don't work around it with a refspec, a rename, or a different remote.
+
 **`--force` and `-f` are forbidden. Use `--force-with-lease` instead.** A plain force push overwrites whatever is on the remote, including a teammate's commits pushed while you were working; `--force-with-lease` refuses the push when the remote moved since your last fetch, so the overwrite can only ever destroy your own work. Same keystrokes, one class of accident removed.
 
 ```bash
@@ -99,7 +115,7 @@ git push --force-with-lease
 
 If the user explicitly asks for `--force` or `-f`, run `--force-with-lease` instead and say so in one line. Don't argue about it, and don't ask for permission first — the substitution is the point of this rule.
 
-When `--force-with-lease` is rejected (`stale info`), stop. Someone else pushed. Run `git fetch` and `git log --oneline origin/<branch>` to show what arrived, report it, and let the user decide between rebasing and abandoning the overwrite. Never escalate to `--force` to get past the rejection, and never `--force-with-lease` a shared branch (`main`, `master`, `develop`, `staging`, release branches) without the user asking for that branch by name.
+When `--force-with-lease` is rejected (`stale info`), stop. Someone else pushed. Run `git fetch` and `git log --oneline origin/<branch>` to show what arrived, report it, and let the user decide between rebasing and abandoning the overwrite. Never escalate to `--force` to get past the rejection, and never `--force-with-lease` a shared branch (`develop`, `staging`, release branches) without the user asking for that branch by name. `main` and `master` are not on that list because no push reaches them at all.
 
 A rewrite is only in scope when the user asked for one — after an `--amend`, an interactive rebase, or a squash. Don't rewrite history on your own initiative just to make a log look tidier.
 
@@ -136,4 +152,6 @@ A rewrite is only in scope when the user asked for one — after an `--amend`, a
 | `refactor(auth): extract guard` | `refactor` isn't one of the four types — use `chore` |
 | `git push --force` / `git push -f` | forbidden — use `git push --force-with-lease` |
 | `git push --force-with-lease` after a `stale info` rejection | the remote moved: fetch, report, ask |
-| `git push --all` | push the current branch only |
+| `git push --all` | push the current branch only, and it would sweep up `main` |
+| `git push origin main` / `git push` while on `main` | `main` moves through a PR only |
+| `git push origin HEAD:master` | same push wearing a refspec |

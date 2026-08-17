@@ -3,12 +3,14 @@
 
 Reads a Claude Code PreToolUse event on stdin. Denies the Bash call when a
 commit message breaks the house convention `type(scope): description`, when a
-commit tries to skip git hooks, or when a push would force-overwrite the
-remote. Stays silent otherwise so the normal permission flow applies.
+commit tries to skip git hooks, when a push would force-overwrite the remote,
+or when a push targets a protected branch. Stays silent otherwise so the
+normal permission flow applies.
 """
 
 import json
 import re
+import subprocess
 import sys
 
 TYPES = ("feat", "fix", "chore", "hotfix")
@@ -89,9 +91,75 @@ def segments(command):
 
 BARE_FORCE = re.compile(r"(?:^|\s)(--force(?![-\w])|-f(?![-\w]))")
 FORCE_REFSPEC = re.compile(r"(?:^|\s)\+[\w./-]+:[\w./-]+")
+BROADCAST = re.compile(r"(?:^|\s)(--all|--mirror)(?![-\w])")
+
+PROTECTED = {"main", "master"}
+
+# `git push` options that swallow the next token as their value, so that token
+# must not be mistaken for a remote or a refspec. Options taking an attached
+# value (`--force-with-lease=...`, `--recurse-submodules=...`) don't belong
+# here: their value never arrives as a separate token.
+VALUE_OPTS = {"--repo", "-o", "--push-option"}
 
 
-def check_push(command):
+def current_branch(cwd):
+    """Checked-out branch name, or None when it can't be determined."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=cwd or None,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def push_targets(seg, branch):
+    """Branch names this `git push` segment would write to on the remote.
+
+    `git push origin feat/x:main` targets `main`; a push with no refspec
+    targets whatever branch is checked out.
+    """
+    tokens = seg.split()
+    if "push" not in tokens:
+        return []
+
+    positional = []
+    skip = False
+    for token in tokens[tokens.index("push") + 1:]:
+        if skip:
+            skip = False
+            continue
+        if token in VALUE_OPTS:
+            skip = True
+            continue
+        if token.startswith("-"):
+            continue
+        positional.append(token)
+
+    # First positional is the remote; the rest are refspecs.
+    refspecs = positional[1:]
+    if not refspecs:
+        return [branch] if branch else []
+
+    targets = []
+    for spec in refspecs:
+        destination = spec.lstrip("+").split(":")[-1]
+        destination = re.sub(r"^refs/heads/", "", destination)
+        if destination in ("", "HEAD"):
+            destination = branch
+        if destination:
+            targets.append(destination)
+    return targets
+
+
+def check_push(command, cwd):
+    branch = None
     for seg in segments(command):
         if not re.search(r"\bgit\s+push\b", seg):
             continue
@@ -113,6 +181,29 @@ def check_push(command):
                 "forbidden. Use `git push --force-with-lease` if a rewrite is "
                 "really what the user asked for."
             )
+        if BROADCAST.search(seg):
+            emit_deny(
+                "`git push --all` / `--mirror` pushes every local branch, "
+                f"including {' and '.join(sorted(PROTECTED))}. Push the current "
+                "branch only: `git push` or `git push -u origin <branch>`."
+            )
+
+        if branch is None:
+            branch = current_branch(cwd)
+        for target in push_targets(seg, branch):
+            if target in PROTECTED:
+                emit_deny(
+                    f"Pushing to `{target}` is forbidden in this repo. "
+                    f"`{target}` only ever moves through a reviewed pull "
+                    "request.\n\n"
+                    "Push the work to its own branch instead:\n"
+                    "  git switch -c <type>/<short-name>   # if still on "
+                    f"{target}\n"
+                    "  git push -u origin <branch>\n\n"
+                    "Then open a PR. If the user insists on writing to "
+                    f"{target} directly, stop and let them run the push "
+                    "themselves."
+                )
     allow()
 
 
@@ -269,7 +360,7 @@ def main():
 
     command = (event.get("tool_input") or {}).get("command") or ""
     if re.search(r"\bgit\s+push\b", command):
-        check_push(command)
+        check_push(command, event.get("cwd"))
     if re.search(r"\bgit\s+commit\b", command):
         check_commit(command)
     allow()
