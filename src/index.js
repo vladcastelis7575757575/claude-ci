@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const { JsonRpcProvider, isAddress, formatEther } = require('ethers');
 
+const { WalletManager } = require('./walletManager');
+
 const app = express();
 const port = process.env.PORT || 3000;
 const rpcUrl = process.env.EVM_RPC_URL || 'https://ethereum-rpc.publicnode.com';
@@ -39,6 +41,10 @@ app.get('/balance/:address', async (req, res) => {
     res.status(502).json({ error: 'Unable to reach the EVM node' });
   }
 });
+
+// GET endpoint 5: cached portfolio with a fiat estimate
+const walletManager = new WalletManager();
+app.get('/portfolio', (req, res) => walletManager.handlePortfolio(req, res));
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
