@@ -1,12 +1,23 @@
 name: PR Review with Progress Tracking
 
-# Runs the pr-reviewer subagent (.claude/agents/pr-reviewer.md) on every PR.
-# The `prompt` input is what puts the action in automation mode; without it it
-# falls back to tag mode and waits for an @claude mention that never comes.
+# Reviews every PR with the instructions held in .claude/agents/pr-reviewer.md.
+#
+# Two things are load-bearing here:
+#  - `prompt` is what puts the action in automation mode. Without it the action
+#    auto-detects "tag" mode and waits for an @claude mention that a
+#    pull_request event can never carry, so the job exits green without
+#    reviewing anything.
+#  - the reviewer instructions are read from the file and inlined below, rather
+#    than delegated to the subagent, so the review does not depend on subagent
+#    discovery inside the action's sandbox. The file stays the single source of
+#    truth: edit it, not this workflow.
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+
+env:
+  REVIEWER_FILE: .claude/agents/pr-reviewer.md
 
 jobs:
   review-with-tracking:
@@ -21,6 +32,22 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Load reviewer instructions
+        id: reviewer
+        run: |
+          if [ ! -f "$REVIEWER_FILE" ]; then
+            echo "::error::$REVIEWER_FILE not found - cannot run the review"
+            exit 1
+          fi
+          # Strip the YAML frontmatter, keep the instructions themselves.
+          {
+            echo 'body<<CLAUDE_REVIEWER_EOF'
+            awk 'NR==1 && /^---[[:space:]]*$/ {fm=1; next}
+                 fm && /^---[[:space:]]*$/ {fm=0; next}
+                 !fm' "$REVIEWER_FILE"
+            echo 'CLAUDE_REVIEWER_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: PR Review with Progress Tracking
         uses: anthropics/claude-code-action@v1
         with:
@@ -33,20 +60,22 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Delegate this review to the `pr-reviewer` subagent using the Task
-            tool. Pass it the repo and PR number above. Do not review the diff
-            yourself and do not summarise its output: the subagent posts its own
-            inline comments and its own single summary comment.
+            Review this pull request by following, to the letter, the reviewer
+            instructions below. They come from ${{ env.REVIEWER_FILE }} and are
+            the only brief for this review: do not substitute your own review
+            format, severity levels or output structure for theirs.
 
-            If the Task tool is unavailable, read .claude/agents/pr-reviewer.md
-            and follow those instructions yourself instead.
+            ---BEGIN REVIEWER INSTRUCTIONS---
+            ${{ steps.reviewer.outputs.body }}
+            ---END REVIEWER INSTRUCTIONS---
 
-          # Tools for the review: Task to delegate, then the subagent's own
-          # declared tools (Read/Grep/Glob/gh) so it can actually run.
+          # Read/Grep/Glob are the tools the reviewer file declares and needs for
+          # its step 0 (read CLAUDE.md and the surrounding code); the gh commands
+          # and the inline-comment tool are how it reports.
           claude_args: |
-            --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
             --model claude-haiku-4-5-20251001
-            --max-turns 30
+            --max-turns 40
 
 # When track_progress is enabled:
 # - Creates a tracking comment with progress checkboxes
