@@ -43,7 +43,7 @@ app.get('/balance/:address', async (req, res) => {
 });
 
 // GET endpoint 5: cached portfolio with a fiat estimate
-const walletManager = new WalletManager();
+const walletManager = new WalletManager(provider);
 app.get('/portfolio', (req, res) => walletManager.handlePortfolio(req, res));
 
 app.listen(port, () => {
