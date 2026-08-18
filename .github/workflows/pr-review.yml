@@ -1,13 +1,13 @@
 name: PR Review with Progress Tracking
 
-# This example demonstrates how to use the track_progress feature to get
-# visual progress tracking for PR reviews, similar to v0.x agent mode.
+# Runs the pr-reviewer subagent (.claude/agents/pr-reviewer.md) on every PR.
+# The `prompt` input is what puts the action in automation mode; without it it
+# falls back to tag mode and waits for an @claude mention that never comes.
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-env:
-  REVIEWER_FILE: .claude/agents/pr-reviewer.md
+
 jobs:
   review-with-tracking:
     runs-on: ubuntu-latest
@@ -28,11 +28,26 @@ jobs:
 
           # Enable progress tracking
           track_progress: true
-          # Tools for comprehensive PR review
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Delegate this review to the `pr-reviewer` subagent using the Task
+            tool. Pass it the repo and PR number above. Do not review the diff
+            yourself and do not summarise its output: the subagent posts its own
+            inline comments and its own single summary comment.
+
+            If the Task tool is unavailable, read .claude/agents/pr-reviewer.md
+            and follow those instructions yourself instead.
+
+          # Tools for the review: Task to delegate, then the subagent's own
+          # declared tools (Read/Grep/Glob/gh) so it can actually run.
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Task,Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
             --model claude-haiku-4-5-20251001
-            --max-turns 20
+            --max-turns 30
+
 # When track_progress is enabled:
 # - Creates a tracking comment with progress checkboxes
 # - Includes all PR context (comments, attachments, images)
