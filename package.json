@@ -2,7 +2,7 @@
   "name": "claude-ci",
   "version": "0.9.0",
   "description": "A simple CI with claude implementation",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/vladcastelis7575757575/claude-ci/issues"
   },
-  "homepage": "https://github.com/vladcastelis7575757575/claude-ci#readme"
+  "homepage": "https://github.com/vladcastelis7575757575/claude-ci#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0"
+  }
 }
