@@ -2,7 +2,7 @@
   "name": "claude-ci",
   "version": "0.9.0",
   "description": "A simple CI with claude implementation",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
