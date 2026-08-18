@@ -19,7 +19,7 @@ class WalletManager {
 
     // Serve from cache while the entry is still fresh.
     const hit = this.cache.get(key);
-    if (hit && Date.now() - hit.at > CACHE_TTL_MS) {
+if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
       return hit.value;
     }
 
