@@ -36,13 +36,15 @@ if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
       return res.status(400).json({ error: 'Query parameter "addresses" is required' });
     }
 
+const MAX_ADDRESSES = Number(process.env.MAX_ADDRESSES_PER_REQUEST || 20);
+    
     const list = addresses.split(',').map((v) => v.trim()).filter(Boolean);
-
-    try {
-      const balances = [];
-      for (const address of list) {
-        balances.push(await this.getBalance(address));
-      }
+    
+    if (list.length > MAX_ADDRESSES) {
+      return res.status(400).json({ 
+        error: `Too many addresses. Maximum is ${MAX_ADDRESSES}` 
+      });
+    }
 
       const totalWei = balances.reduce((sum, item) => sum + BigInt(item.wei), 0n);
       const rate = Number(process.env.ETH_USD_RATE || 0);
