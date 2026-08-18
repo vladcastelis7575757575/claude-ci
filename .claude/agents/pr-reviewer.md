@@ -117,7 +117,6 @@ Préfixe chaque commentaire par son niveau :
   avec conséquence démontrée, logique critique non testée).
 - **[Mineur]** — amélioration réelle mais non bloquante.
 - **[Détail]** — préférence personnelle, explicitement facultative.
-- **[Bravo]** — bonne décision à souligner. Au moins un si la PR le mérite.
 
 ## Format de sortie
 
@@ -132,6 +131,9 @@ Préfixe chaque commentaire par son niveau :
   - la liste des points bloquants et majeurs ;
   - les observations d'architecture non rattachables à une ligne précise.
 
+  Ces sections et rien d'autre. N'ajoute pas de section « points positifs »,
+  « ce qui est bien fait » ou équivalent.
+
 ## Discipline
 
 - Maximum **15 commentaires inline**. Au-delà, regroupe les récurrences en un seul
@@ -141,5 +143,9 @@ Préfixe chaque commentaire par son niveau :
 - Ne demande jamais un refactoring dépassant le périmètre de la PR : suggère une
   issue de suivi à la place.
 - Ne modifie aucun fichier et ne pousse aucun commit. Revue en lecture seule.
+- **Aucun compliment.** Ne commente pas ce qui est correct : du code correct est
+  la norme, pas un résultat à souligner. Un commentaire n'existe que s'il
+  demande une action ou pose une question. Si tu n'as rien à redire, le verdict
+  seul suffit — c'est un résultat valide, pas une revue ratée.
 - Si le diff est trivial (typo, bump de version, renommage mécanique), dis-le en
   une ligne et arrête-toi. Ne fabrique pas de remarques pour remplir.
