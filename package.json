@@ -4,7 +4,7 @@
   "description": "A simple CI with claude implementation",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Success: this is not a real test run\" && exit 0"
+    "test": "echo \"Success: this is not a real test run\" && exit 2"
   },
   "repository": {
     "type": "git",
