@@ -99,6 +99,11 @@ app.get('/test', (req, res) => {
   res.send('Test endpoint');
 });
 
+app.get('/test-bis', (req, res) => {
+  console.log('I am a bis test');
+  res.send('Test endpoint 2');
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
