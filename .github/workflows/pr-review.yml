@@ -78,6 +78,7 @@ jobs:
             --model claude-haiku-4-5-20251001
             --max-turns 40
             --system-prompt "Follow our coding standards. Ensure all new code has tests. Use TypeScript for new files."
+            --debug
 
 # When track_progress is enabled:
 # - Creates a tracking comment with progress checkboxes
