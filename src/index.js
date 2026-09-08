@@ -95,7 +95,7 @@ const walletManager = new WalletManager(provider);
 app.get('/portfolio', (req, res) => walletManager.handlePortfolio(req, res));
 
 app.get('/test', (req, res) => {
-  console.log('je suis un test');
+  console.log('I am a test');
   res.send('Test endpoint');
 });
 
